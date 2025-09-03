@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import api from "../api/axios";
 
@@ -19,6 +19,8 @@ interface GoogleJwtPayload {
 }
 
 const GoogleLoginButton: React.FC = () => {
+  const [error, setError] = useState("");
+
   useEffect(() => {
     if (window.google) {
       window.google.accounts.id.initialize({
@@ -44,17 +46,23 @@ const GoogleLoginButton: React.FC = () => {
         token: res.credential,
       });
 
+      // ✅ Store token first
       localStorage.setItem("token", response.data.token);
-      console.log("Logged in with Google ✅");
 
-      // Redirect to dashboard
+      // ✅ Then redirect
       window.location.href = "/dashboard";
     } catch (err) {
       console.error("Google login failed:", err);
+      setError("Google login not successful");
     }
   };
 
-  return <div id="google-login-btn"></div>;
+  return (
+    <div>
+      <div id="google-login-btn"></div>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
 };
 
 export default GoogleLoginButton;

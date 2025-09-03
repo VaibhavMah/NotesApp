@@ -6,6 +6,9 @@ import sendEmail from "../utils/sendEmail";
 import { OAuth2Client } from "google-auth-library";
 import dotenv from "dotenv"
 const router = Router();
+import authMiddleware from "../middleware/authMiddleware";
+import Note from "../models/Note";
+import { AuthRequest } from "../middleware/authMiddleware";
 
 
 dotenv.config();
@@ -211,6 +214,29 @@ router.post("/google", async (req, res) => {
     res.status(500).json({ message: "Google login failed" });
   }
 });
+
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+    const note = new Note({
+      userId: req.user!.id,   // ✅ works now
+      content: req.body.content,
+    });
+    await note.save();
+    res.json(note);
+  } catch (err) {
+    res.status(500).json({ message: "Error creating note" });
+  }
+});
+
+
+// GET /api/auth/me
+router.get("/me", authMiddleware, (req: AuthRequest, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  res.json(req.user); // ✅ return the authenticated user
+});
+
 
 
 export default router;

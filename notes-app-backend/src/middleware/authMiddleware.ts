@@ -1,22 +1,34 @@
-// middleware/authMiddleware.ts
+// src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import User from "../models/User";
 
-interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
 
-  if (!token) return res.status(401).json({ message: "No token provided" });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
-    req.user = decoded;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    req.user = user; // ✅ attach user
     next();
   } catch (err) {
-    return res.status(403).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
+
+export default authMiddleware;
